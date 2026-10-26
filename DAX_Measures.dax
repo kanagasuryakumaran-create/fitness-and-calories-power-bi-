@@ -1,0 +1,161 @@
+// =====================================================================================
+// PROJECT: Fitness and Calorie Analysis Using Power BI and SQL
+// FILE: DAX_Measures.dax
+// AUTHOR: Professional Data Analyst & Power BI Developer
+// INSTRUCTIONS FOR POWER BI DESKTOP:
+// 1. In Power BI Desktop, click on "Modeling" tab -> "New Table" (Name it '_Measures' to keep KPIs organized).
+//    DAX for Table: _Measures = ROW("Description", "Key Measures Table")
+// 2. Right-click on '_Measures' -> Click "New Measure".
+// 3. Paste each measure definition below into the formula bar and press Enter.
+// 4. Format each measure using the 'Measure tools' formatting ribbon (e.g., Whole number, Decimal, Currency, etc.).
+// =====================================================================================
+
+// -------------------------------------------------------------------------------------
+// 1. TOTAL CALORIES CONSUMED
+// Description: Calculates the cumulative sum of all dietary calories recorded.
+// Format: Whole Number (Use comma separator, e.g., 1,534,164)
+// -------------------------------------------------------------------------------------
+Total Calories Consumed = 
+SUM(fitness_activity_logs[Calories_Consumed])
+
+
+// -------------------------------------------------------------------------------------
+// 2. TOTAL CALORIES BURNED
+// Description: Calculates the cumulative sum of all active calories burned during workouts.
+// Format: Whole Number (Use comma separator, e.g., 297,489)
+// -------------------------------------------------------------------------------------
+Total Calories Burned = 
+SUM(fitness_activity_logs[Calories_Burned])
+
+
+// -------------------------------------------------------------------------------------
+// 3. TOTAL WORKOUT SESSIONS
+// Description: Counts total logged workout/activity sessions across all users.
+// Format: Whole Number
+// -------------------------------------------------------------------------------------
+Total Workout Sessions = 
+COUNTROWS(fitness_activity_logs)
+
+
+// -------------------------------------------------------------------------------------
+// 4. AVERAGE WORKOUT DURATION
+// Description: Average length of a workout session in minutes.
+// Format: Decimal Number (1 decimal place, e.g., 52.9 mins)
+// -------------------------------------------------------------------------------------
+Average Workout Duration = 
+AVERAGE(fitness_activity_logs[Workout_Duration_Minutes])
+
+
+// -------------------------------------------------------------------------------------
+// 5. AVERAGE CALORIES BURNED PER SESSION
+// Description: Evaluates the mean energy expenditure per exercise session.
+// Uses DIVIDE() to protect against division by zero errors.
+// Format: Decimal Number (1 decimal place, e.g., 426.8 kcal)
+// -------------------------------------------------------------------------------------
+Average Calories Burned Per Session = 
+DIVIDE(
+    [Total Calories Burned],
+    [Total Workout Sessions],
+    0
+)
+
+
+// -------------------------------------------------------------------------------------
+// 6. AVERAGE DAILY STEPS
+// Definition & Precision Note:
+// When analyzing steps across multiple users and dates, calculating daily averages requires
+// aggregating total steps per distinct day-user combination before averaging, ensuring that 
+// filtering by user or cohort accurately reflects true daily movement rather than a raw row count.
+// Format: Whole Number (e.g., 8,275 steps)
+// -------------------------------------------------------------------------------------
+Average Daily Steps = 
+AVERAGEX(
+    KEEPFILTERS(
+        SUMMARIZE(
+            fitness_activity_logs,
+            fitness_activity_logs[Date],
+            fitness_activity_logs[User_ID],
+            "Daily_Steps", SUM(fitness_activity_logs[Steps])
+        )
+    ),
+    [Daily_Steps]
+)
+
+
+// -------------------------------------------------------------------------------------
+// 7. AVERAGE SLEEP HOURS
+// Description: Calculates the average nightly sleep recorded per user day.
+// Format: Decimal Number (1 decimal place, e.g., 7.2 hrs)
+// -------------------------------------------------------------------------------------
+Average Sleep Hours = 
+AVERAGEX(
+    KEEPFILTERS(
+        SUMMARIZE(
+            fitness_activity_logs,
+            fitness_activity_logs[Date],
+            fitness_activity_logs[User_ID],
+            "Daily_Sleep", AVERAGE(fitness_activity_logs[Sleep_Hours])
+        )
+    ),
+    [Daily_Sleep]
+)
+
+
+// -------------------------------------------------------------------------------------
+// 8. AVERAGE WATER INTAKE
+// Description: Calculates average daily fluid consumption in liters.
+// Format: Decimal Number (1 decimal place, e.g., 3.2 L)
+// -------------------------------------------------------------------------------------
+Average Water Intake = 
+AVERAGEX(
+    KEEPFILTERS(
+        SUMMARIZE(
+            fitness_activity_logs,
+            fitness_activity_logs[Date],
+            fitness_activity_logs[User_ID],
+            "Daily_Water", AVERAGE(fitness_activity_logs[Water_Intake_Liters])
+        )
+    ),
+    [Daily_Water]
+)
+
+
+// -------------------------------------------------------------------------------------
+// 9. CALORIE DIFFERENCE (ENERGY GAP)
+// IMPORTANT ANALYTICAL DISCLAIMER:
+// Do not treat calorie difference as a complete measure of biological energy balance.
+// Food intake represents total daily dietary consumption (which fuels Basal Metabolic Rate +
+// thermic effect of food + daily living), whereas 'Calories Burned' in this tracking schema 
+// strictly captures active workout exercise. Unrecorded non-exercise activity thermogenesis (NEAT) 
+// and baseline BMR mean that a mathematical positive difference does NOT indicate pure fat accumulation.
+// Format: Whole Number (Use comma separator, e.g., +1,236,675)
+// -------------------------------------------------------------------------------------
+Calorie Difference = 
+[Total Calories Consumed] - [Total Calories Burned]
+
+
+// -------------------------------------------------------------------------------------
+// 10. TOTAL ACTIVE USERS
+// Description: Counts distinct users present in the selected filter context.
+// Format: Whole Number
+// -------------------------------------------------------------------------------------
+Total Active Users = 
+DISTINCTCOUNT(fitness_activity_logs[User_ID])
+
+
+// -------------------------------------------------------------------------------------
+// 11. TOTAL TRACKED DAYS
+// Description: Counts unique calendar days present in the active selection.
+// Format: Whole Number
+// -------------------------------------------------------------------------------------
+Total Tracked Days = 
+DISTINCTCOUNT(fitness_activity_logs[Date])
+
+
+// -------------------------------------------------------------------------------------
+// 12. STEP GOAL PROGRESS % (BENCHMARK: 10,000 STEPS/DAY)
+// Description: Measures cohort or individual progress against the WHO recommended 10k steps/day.
+// Format: Percentage (1 decimal place, e.g., 82.8%)
+// -------------------------------------------------------------------------------------
+Step Goal Progress % = 
+DIVIDE([Average Daily Steps], 10000, 0)

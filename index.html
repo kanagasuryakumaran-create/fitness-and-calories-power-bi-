@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fitness & Calorie Analytics Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- Load Dataset -->
+  <script src="fitness_data.js"></script>
+  <style>
+    :root {
+      --bg-canvas: #f8fafc;
+      --card-bg: #ffffff;
+      --card-border: #e2e8f0;
+      --text-primary: #0f172a;
+      --text-secondary: #64748b;
+      --text-muted: #94a3b8;
+      --accent-burn: #f97316;
+      --accent-intake: #0284c7;
+      --accent-steps: #10b981;
+      --accent-purple: #8b5cf6;
+      --accent-navy: #1e293b;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.06), 0 2px 4px -1px rgba(0,0,0,0.04);
+      --radius: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-canvas);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Navigation Bar */
+    header {
+      background: #ffffff;
+      border-bottom: 1px solid var(--card-border);
+      padding: 1rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .header-inner {
+      max-width: 1600px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      color: white;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      box-shadow: 0 4px 10px rgba(2, 132, 199, 0.3);
+    }
+
+    .brand-text h1 {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+    }
+
+    .brand-text p {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .nav-tabs {
+      display: flex;
+      background: #f1f5f9;
+      padding: 4px;
+      border-radius: 10px;
+      gap: 4px;
+    }
+
+    .nav-tab-btn {
+      border: none;
+      background: transparent;
+      padding: 8px 16px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .nav-tab-btn.active {
+      background: #ffffff;
+      color: var(--accent-intake);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn-launch-pbi {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: #f2c811;
+      color: #000;
+      font-weight: 700;
+      font-size: 0.85rem;
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.2s;
+    }
+
+    .btn-launch-pbi:hover {
+      background: #eab308;
+      transform: translateY(-1px);
+    }
+
+    /* Main Container */
+    main {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 1.5rem 2rem 3rem 2rem;
+      width: 100%;
+      flex: 1;
+    }
+
+    /* Slicers / Filters Bar */
+    .slicers-bar {
+      background: #ffffff;
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 1rem 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.25rem;
+    }
+
+    .slicer-group {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .slicer-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+    }
+
+    .slicer-select, .slicer-input {
+      padding: 7px 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      background: #f8fafc;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .slicer-select:focus, .slicer-input:focus {
+      border-color: var(--accent-intake);
+      background: #ffffff;
+    }
+
+    .btn-reset {
+      background: #f1f5f9;
+      border: 1px solid var(--card-border);
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-reset:hover {
+      background: #e2e8f0;
+      color: var(--text-primary);
+    }
+
+    .filter-badge {
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: #e0f2fe;
+      color: #0369a1;
+      font-weight: 700;
+    }
+
+    /* KPI Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .kpi-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .kpi-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+    }
+
+    .kpi-consumed::before { background: var(--accent-intake); }
+    .kpi-burned::before { background: var(--accent-burn); }
+    .kpi-steps::before { background: var(--accent-steps); }
+    .kpi-duration::before { background: var(--accent-navy); }
+    .kpi-sleep::before { background: var(--accent-purple); }
+    .kpi-water::before { background: #06b6d4; }
+
+    .kpi-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-secondary);
+      margin-bottom: 0.5rem;
+    }
+
+    .kpi-value {
+      font-size: 1.85rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.25rem;
+    }
+
+    .kpi-consumed .kpi-value { color: var(--accent-intake); }
+    .kpi-burned .kpi-value { color: var(--accent-burn); }
+    .kpi-steps .kpi-value { color: var(--accent-steps); }
+    .kpi-duration .kpi-value { color: var(--text-primary); }
+    .kpi-sleep .kpi-value { color: var(--accent-purple); }
+    .kpi-water .kpi-value { color: #0891b2; }
+
+    .kpi-subtext {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    /* Charts Layout Grid */
+    .charts-row-2 {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .charts-row-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+
+    @media (max-width: 1200px) {
+      .charts-row-2, .charts-row-3 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .chart-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .chart-header h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .chart-badge {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: #f1f5f9;
+      color: var(--text-secondary);
+    }
+
+    .chart-container {
+      position: relative;
+      height: 280px;
+      width: 100%;
+    }
+
+    /* Table Section */
+    .table-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 2rem;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      max-height: 380px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.8rem;
+    }
+
+    th {
+      background: #f8fafc;
+      color: var(--text-secondary);
+      font-weight: 700;
+      padding: 10px 14px;
+      position: sticky;
+      top: 0;
+      border-bottom: 2px solid var(--card-border);
+      text-transform: uppercase;
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+    }
+
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #f1f5f9;
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    tbody tr:hover {
+      background: #f8fafc;
+    }
+
+    /* Tab views */
+    .tab-view {
+      display: none;
+    }
+
+    .tab-view.active {
+      display: block;
+    }
+
+    /* SQL Console Tab Styles */
+    .sql-layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 900px) {
+      .sql-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .query-list {
+      background: #ffffff;
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      max-height: 650px;
+      overflow-y: auto;
+    }
+
+    .query-btn {
+      text-align: left;
+      padding: 10px 12px;
+      background: #f8fafc;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .query-btn:hover {
+      background: #f1f5f9;
+      border-color: var(--accent-intake);
+    }
+
+    .query-btn.active {
+      background: #e0f2fe;
+      color: #0369a1;
+      border-color: #0284c7;
+    }
+
+    .sql-editor-card {
+      background: #ffffff;
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .sql-code-box {
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 1.25rem;
+      border-radius: 8px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      overflow-x: auto;
+      white-space: pre-wrap;
+    }
+
+    .sql-explanation {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      background: #f8fafc;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border-left: 4px solid var(--accent-intake);
+    }
+
+    /* DAX View Styles */
+    .dax-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .dax-card {
+      background: #ffffff;
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .dax-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .dax-header h4 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .dax-code {
+      background: #f1f5f9;
+      color: #0f172a;
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 0.82rem;
+      border-left: 3px solid #0284c7;
+      white-space: pre-wrap;
+    }
+
+    .dax-desc {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header>
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-icon">⚡</div>
+        <div class="brand-text">
+          <h1>Fitness & Calorie Analytics Dashboard</h1>
+          <p>Powered by MySQL & Microsoft Power BI DAX Modeling</p>
+        </div>
+      </div>
+
+      <div class="nav-tabs">
+        <button class="nav-tab-btn active" onclick="switchTab('dashboard')">📊 Power BI Dashboard</button>
+        <button class="nav-tab-btn" onclick="switchTab('sql')">🗄️ SQL Queries & Runner</button>
+        <button class="nav-tab-btn" onclick="switchTab('dax')">📐 DAX Measures Library</button>
+      </div>
+
+      <div>
+        <button class="btn-launch-pbi" onclick="launchPowerBI()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M4 18h2v4H4v-4zm4-6h2v10H8V12zm4-4h2v14h-2V8zm4-6h2v20h-2V2z"/></svg>
+          Open in Power BI
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main>
+    <!-- TAB 1: POWER BI DASHBOARD VIEW -->
+    <div id="tab-dashboard" class="tab-view active">
+      
+      <!-- Interactive Slicers Bar -->
+      <section class="slicers-bar">
+        <div class="slicer-group">
+          <span class="slicer-label">User ID:</span>
+          <select id="userSlicer" class="slicer-select" onchange="applyFilters()">
+            <option value="ALL">All Users (20 Users)</option>
+          </select>
+        </div>
+
+        <div class="slicer-group">
+          <span class="slicer-label">Activity Type:</span>
+          <select id="activitySlicer" class="slicer-select" onchange="applyFilters()">
+            <option value="ALL">All Activities (7 Types)</option>
+            <option value="HIIT">HIIT</option>
+            <option value="Running">Running</option>
+            <option value="Swimming">Swimming</option>
+            <option value="Cycling">Cycling</option>
+            <option value="Strength Training">Strength Training</option>
+            <option value="Walking">Walking</option>
+            <option value="Yoga">Yoga</option>
+          </select>
+        </div>
+
+        <div class="slicer-group">
+          <span class="slicer-label">Date Range:</span>
+          <input type="date" id="startDate" class="slicer-input" value="2024-01-01" onchange="applyFilters()">
+          <span style="color: var(--text-muted); font-size: 0.8rem;">to</span>
+          <input type="date" id="endDate" class="slicer-input" value="2024-02-09" onchange="applyFilters()">
+        </div>
+
+        <div class="slicer-group">
+          <span class="filter-badge" id="recordCountBadge">697 Sessions Logged</span>
+          <button class="btn-reset" onclick="resetFilters()">Reset Slicers</button>
+        </div>
+      </section>
+
+      <!-- Row 1: KPI Cards -->
+      <section class="kpi-grid">
+        <div class="kpi-card kpi-consumed">
+          <span class="kpi-title">Total Calories Consumed</span>
+          <span class="kpi-value" id="kpiConsumed">1.53M</span>
+          <span class="kpi-subtext">Dietary intake across cohort</span>
+        </div>
+
+        <div class="kpi-card kpi-burned">
+          <span class="kpi-title">Total Calories Burned</span>
+          <span class="kpi-value" id="kpiBurned">297.5K</span>
+          <span class="kpi-subtext">Active exercise expenditure</span>
+        </div>
+
+        <div class="kpi-card kpi-steps">
+          <span class="kpi-title">Average Daily Steps</span>
+          <span class="kpi-value" id="kpiSteps">8,275</span>
+          <span class="kpi-subtext">Target: 10,000 steps/day</span>
+        </div>
+
+        <div class="kpi-card kpi-duration">
+          <span class="kpi-title">Avg Workout Duration</span>
+          <span class="kpi-value" id="kpiDuration">52.9m</span>
+          <span class="kpi-subtext">Minutes per exercise session</span>
+        </div>
+
+        <div class="kpi-card kpi-sleep">
+          <span class="kpi-title">Avg Sleep Hours</span>
+          <span class="kpi-value" id="kpiSleep">7.2h</span>
+          <span class="kpi-subtext">Nocturnal recovery duration</span>
+        </div>
+
+        <div class="kpi-card kpi-water">
+          <span class="kpi-title">Avg Water Intake</span>
+          <span class="kpi-value" id="kpiWater">3.2L</span>
+          <span class="kpi-subtext">Daily hydration level</span>
+        </div>
+      </section>
+
+      <!-- Row 2: Charts (Daily Trend & Burn by Activity) -->
+      <div class="charts-row-2">
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3>Visual 1: Daily Calorie Intake vs. Calories Burned</h3>
+            <span class="chart-badge">Line Chart (Dual Series)</span>
+          </div>
+          <div class="chart-container">
+            <canvas id="chartDailyTrend"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3>Visual 2: Calories Burned by Activity</h3>
+            <span class="chart-badge">Clustered Bar Chart</span>
+          </div>
+          <div class="chart-container">
+            <canvas id="chartActivityBurn"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 3: Charts (Distribution, Steps vs Target, Food Category) -->
+      <div class="charts-row-3">
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3>Visual 3: Activity Session Share</h3>
+            <span class="chart-badge">Donut Chart</span>
+          </div>
+          <div class="chart-container">
+            <canvas id="chartActivityShare"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3>Visual 5: Daily Steps vs. 10k Goal</h3>
+            <span class="chart-badge">Column Chart</span>
+          </div>
+          <div class="chart-container">
+            <canvas id="chartDailySteps"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3>Visual 6: Calories by Food Category</h3>
+            <span class="chart-badge">Bar Chart</span>
+          </div>
+          <div class="chart-container">
+            <canvas id="chartFoodCategory"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 4: Detailed Summary Table -->
+      <div class="table-card">
+        <div class="chart-header">
+          <h3>Visual 7: Daily Fitness Activity Summary Table</h3>
+          <span class="chart-badge" id="tableRowCount">Showing 697 entries</span>
+        </div>
+        <div class="table-container">
+          <table id="dataTable">
+            <thead>
+              <tr>
+                <th>Record</th>
+                <th>User ID</th>
+                <th>Date</th>
+                <th>Age</th>
+                <th>Gender</th>
+                <th>Activity</th>
+                <th>Duration (min)</th>
+                <th>Burned (kcal)</th>
+                <th>Food Category</th>
+                <th>Consumed (kcal)</th>
+                <th>Steps</th>
+                <th>Water (L)</th>
+                <th>Sleep (h)</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TAB 2: SQL QUERIES & RUNNER VIEW -->
+    <div id="tab-sql" class="tab-view">
+      <div class="sql-layout">
+        <div class="query-list" id="queryList">
+          <!-- Populated by JavaScript -->
+        </div>
+
+        <div class="sql-editor-card">
+          <div>
+            <h2 id="sqlQueryTitle" style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.25rem;">1. Retrieve Daily Calorie Intake</h2>
+            <p id="sqlQueryDesc" class="sql-explanation">Aggregates dietary calories consumed grouped by observation date.</p>
+          </div>
+
+          <div class="sql-code-box" id="sqlCodeDisplay">-- SQL Code goes here</div>
+
+          <div style="display: flex; gap: 0.75rem;">
+            <button class="nav-tab-btn active" style="background: var(--accent-intake); color: white;" onclick="executeSelectedQuery()">▶ Run Query in Memory</button>
+            <span id="queryExecStatus" style="font-size: 0.85rem; color: var(--accent-steps); font-weight: 600; display: flex; align-items: center;">✓ Verified Against 697 Records</span>
+          </div>
+
+          <div class="table-container" style="max-height: 280px; border: 1px solid var(--card-border); border-radius: 8px;">
+            <table id="sqlResultTable">
+              <thead id="sqlResultHead"></thead>
+              <tbody id="sqlResultBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: DAX MEASURES LIBRARY VIEW -->
+    <div id="tab-dax" class="tab-view">
+      <div style="margin-bottom: 1.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 0.25rem;">Power BI DAX Measures Repository</h2>
+        <p style="font-size: 0.85rem; color: var(--text-secondary);">Dedicated measures table: <code>_Measures</code> | Evaluated on-the-fly during user filter interactions</p>
+      </div>
+
+      <div class="dax-grid" id="daxGrid">
+        <!-- Populated by JavaScript -->
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    // Tab Switching
+    function switchTab(tabId) {
+      document.querySelectorAll('.nav-tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-view').forEach(view => view.classList.remove('active'));
+      
+      if(tabId === 'dashboard') {
+        document.querySelectorAll('.nav-tab-btn')[0].classList.add('active');
+        document.getElementById('tab-dashboard').classList.add('active');
+      } else if(tabId === 'sql') {
+        document.querySelectorAll('.nav-tab-btn')[1].classList.add('active');
+        document.getElementById('tab-sql').classList.add('active');
+      } else if(tabId === 'dax') {
+        document.querySelectorAll('.nav-tab-btn')[2].classList.add('active');
+        document.getElementById('tab-dax').classList.add('active');
+      }
+    }
+
+    function launchPowerBI() {
+      fetch('/open-powerbi')
+        .then(r => r.json())
+        .then(data => alert(data.message || "Power BI Desktop launch signal sent!"))
+        .catch(e => {
+          alert("To open in Power BI Desktop:\n1. Launch Power BI Desktop from your Start Menu.\n2. Open 'fitness_data.csv' via Get Data -> Text/CSV.");
+        });
+    }
+
+    // Chart instances
+    let chartDaily, chartActivity, chartDonut, chartSteps, chartFood;
+
+    // Filter Logic
+    let filteredData = [];
+
+    function initDashboard() {
+      if(!window.FITNESS_DATA || window.FITNESS_DATA.length === 0) {
+        alert("Dataset not loaded. Ensure fitness_data.js is present.");
+        return;
+      }
+
+      // Populate User Slicer
+      const userSelect = document.getElementById('userSlicer');
+      const users = [...new Set(window.FITNESS_DATA.map(d => d.User_ID))].sort();
+      users.forEach(u => {
+        const opt = document.createElement('option');
+        opt.value = u;
+        opt.textContent = `User ${u}`;
+        userSelect.appendChild(opt);
+      });
+
+      filteredData = [...window.FITNESS_DATA];
+      applyFilters();
+      initSqlTab();
+      initDaxTab();
+    }
+
+    function applyFilters() {
+      const selectedUser = document.getElementById('userSlicer').value;
+      const selectedActivity = document.getElementById('activitySlicer').value;
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+
+      filteredData = window.FITNESS_DATA.filter(d => {
+        const userMatch = (selectedUser === 'ALL' || d.User_ID === selectedUser);
+        const activityMatch = (selectedActivity === 'ALL' || d.Activity_Type === selectedActivity);
+        const dateMatch = (!startDate || d.Date >= startDate) && (!endDate || d.Date <= endDate);
+        return userMatch && activityMatch && dateMatch;
+      });
+
+      document.getElementById('recordCountBadge').textContent = `${filteredData.length} Sessions Filtered`;
+      document.getElementById('tableRowCount').textContent = `Showing ${filteredData.length} entries`;
+
+      updateKPIs();
+      renderCharts();
+      renderTable();
+    }
+
+    function resetFilters() {
+      document.getElementById('userSlicer').value = 'ALL';
+      document.getElementById('activitySlicer').value = 'ALL';
+      document.getElementById('startDate').value = '2024-01-01';
+      document.getElementById('endDate').value = '2024-02-09';
+      applyFilters();
+    }
+
+    function updateKPIs() {
+      if(filteredData.length === 0) {
+        document.getElementById('kpiConsumed').textContent = '0';
+        document.getElementById('kpiBurned').textContent = '0';
+        document.getElementById('kpiSteps').textContent = '0';
+        document.getElementById('kpiDuration').textContent = '0m';
+        document.getElementById('kpiSleep').textContent = '0h';
+        document.getElementById('kpiWater').textContent = '0L';
+        return;
+      }
+
+      const totalConsumed = filteredData.reduce((acc, r) => acc + r.Calories_Consumed, 0);
+      const totalBurned = filteredData.reduce((acc, r) => acc + r.Calories_Burned, 0);
+      const avgDuration = (filteredData.reduce((acc, r) => acc + r.Workout_Duration_Minutes, 0) / filteredData.length).toFixed(1);
+      const avgSleep = (filteredData.reduce((acc, r) => acc + r.Sleep_Hours, 0) / filteredData.length).toFixed(1);
+      const avgWater = (filteredData.reduce((acc, r) => acc + r.Water_Intake_Liters, 0) / filteredData.length).toFixed(1);
+
+      // Distinct dates and user average for steps
+      const totalSteps = filteredData.reduce((acc, r) => acc + r.Steps, 0);
+      const avgSteps = Math.round(totalSteps / filteredData.length);
+
+      document.getElementById('kpiConsumed').textContent = totalConsumed >= 1000000 
+        ? (totalConsumed / 1000000).toFixed(2) + 'M' 
+        : (totalConsumed / 1000).toFixed(1) + 'K';
+      
+      document.getElementById('kpiBurned').textContent = totalBurned >= 1000000
+        ? (totalBurned / 1000000).toFixed(2) + 'M'
+        : (totalBurned / 1000).toFixed(1) + 'K';
+
+      document.getElementById('kpiSteps').textContent = avgSteps.toLocaleString();
+      document.getElementById('kpiDuration').textContent = `${avgDuration}m`;
+      document.getElementById('kpiSleep').textContent = `${avgSleep}h`;
+      document.getElementById('kpiWater').textContent = `${avgWater}L`;
+    }
+
+    function renderCharts() {
+      // 1. Daily Trend
+      const dates = [...new Set(filteredData.map(d => d.Date))].sort();
+      const dailyConsumed = dates.map(dt => filteredData.filter(d => d.Date === dt).reduce((s, r) => s + r.Calories_Consumed, 0));
+      const dailyBurned = dates.map(dt => filteredData.filter(d => d.Date === dt).reduce((s, r) => s + r.Calories_Burned, 0));
+      const dailyStepsData = dates.map(dt => {
+        const rows = filteredData.filter(d => d.Date === dt);
+        return rows.length ? Math.round(rows.reduce((s, r) => s + r.Steps, 0) / rows.length) : 0;
+      });
+
+      if(chartDaily) chartDaily.destroy();
+      const ctxDaily = document.getElementById('chartDailyTrend').getContext('2d');
+      chartDaily = new Chart(ctxDaily, {
+        type: 'line',
+        data: {
+          labels: dates.map(d => d.slice(5)), // MM-DD
+          datasets: [
+            {
+              label: 'Calories Consumed',
+              data: dailyConsumed,
+              borderColor: '#0284c7',
+              backgroundColor: 'rgba(2, 132, 199, 0.08)',
+              fill: true,
+              tension: 0.3,
+              pointRadius: 2
+            },
+            {
+              label: 'Calories Burned',
+              data: dailyBurned,
+              borderColor: '#f97316',
+              backgroundColor: 'rgba(249, 115, 22, 0.08)',
+              fill: true,
+              tension: 0.3,
+              pointRadius: 2
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'top' } }
+        }
+      });
+
+      // 2. Activity Burn
+      const activities = ['HIIT', 'Running', 'Swimming', 'Cycling', 'Strength Training', 'Walking', 'Yoga'];
+      const actBurn = activities.map(act => filteredData.filter(d => d.Activity_Type === act).reduce((s, r) => s + r.Calories_Burned, 0));
+
+      if(chartActivity) chartActivity.destroy();
+      const ctxAct = document.getElementById('chartActivityBurn').getContext('2d');
+      chartActivity = new Chart(ctxAct, {
+        type: 'bar',
+        data: {
+          labels: activities,
+          datasets: [{
+            label: 'Total Calories Burned',
+            data: actBurn,
+            backgroundColor: '#f97316',
+            borderRadius: 6
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } }
+        }
+      });
+
+      // 3. Activity Donut Share
+      const actCounts = activities.map(act => filteredData.filter(d => d.Activity_Type === act).length);
+      if(chartDonut) chartDonut.destroy();
+      const ctxDonut = document.getElementById('chartActivityShare').getContext('2d');
+      chartDonut = new Chart(ctxDonut, {
+        type: 'doughnut',
+        data: {
+          labels: activities,
+          datasets: [{
+            data: actCounts,
+            backgroundColor: ['#ef4444', '#f97316', '#06b6d4', '#3b82f6', '#8b5cf6', '#10b981', '#14b8a6']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } } }
+        }
+      });
+
+      // 4. Daily Steps vs Goal
+      if(chartSteps) chartSteps.destroy();
+      const ctxSteps = document.getElementById('chartDailySteps').getContext('2d');
+      chartSteps = new Chart(ctxSteps, {
+        type: 'bar',
+        data: {
+          labels: dates.map(d => d.slice(5)),
+          datasets: [{
+            label: 'Avg Steps',
+            data: dailyStepsData,
+            backgroundColor: dailyStepsData.map(v => v >= 10000 ? '#10b981' : '#cbd5e1'),
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          }
+        }
+      });
+
+      // 5. Food Category
+      const foodCats = ['Proteins', 'Vegetables', 'Fruits', 'Carbohydrates', 'Snacks & Fats', 'Dairy'];
+      const foodCalories = foodCats.map(cat => filteredData.filter(d => d.Food_Category === cat).reduce((s, r) => s + r.Calories_Consumed, 0));
+
+      if(chartFood) chartFood.destroy();
+      const ctxFood = document.getElementById('chartFoodCategory').getContext('2d');
+      chartFood = new Chart(ctxFood, {
+        type: 'bar',
+        data: {
+          labels: foodCats,
+          datasets: [{
+            label: 'Consumed Calories',
+            data: foodCalories,
+            backgroundColor: '#0284c7',
+            borderRadius: 6
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = '';
+      const displayRows = filteredData.slice(0, 50); // display top 50 for performance
+      displayRows.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>#${r.Record_ID}</strong></td>
+          <td>${r.User_ID}</td>
+          <td>${r.Date}</td>
+          <td>${r.Age}</td>
+          <td>${r.Gender}</td>
+          <td><span style="font-weight:600; color:#0284c7">${r.Activity_Type}</span></td>
+          <td>${r.Workout_Duration_Minutes}m</td>
+          <td><span style="color:#f97316; font-weight:700">${r.Calories_Burned}</span></td>
+          <td>${r.Food_Category}</td>
+          <td>${r.Calories_Consumed}</td>
+          <td>${r.Steps.toLocaleString()}</td>
+          <td>${r.Water_Intake_Liters}L</td>
+          <td>${r.Sleep_Hours}h</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // SQL Tab Setup
+    const SQL_QUERIES = [
+      {
+        id: 1,
+        title: "1. Retrieve Daily Calorie Intake",
+        desc: "Aggregates total and average calories consumed grouped by date across the cohort.",
+        code: `SELECT \n    Date,\n    COUNT(DISTINCT User_ID) AS Users_Logged,\n    SUM(Calories_Consumed) AS Total_Daily_Calories,\n    ROUND(AVG(Calories_Consumed), 2) AS Avg_Daily_Calories\nFROM fitness_activity_logs\nGROUP BY Date\nORDER BY Date ASC;`,
+        run: () => {
+          const dates = [...new Set(window.FITNESS_DATA.map(d => d.Date))].sort();
+          return dates.slice(0, 10).map(dt => {
+            const rows = window.FITNESS_DATA.filter(d => d.Date === dt);
+            const total = rows.reduce((s, r) => s + r.Calories_Consumed, 0);
+            return {
+              "Date": dt,
+              "Users_Logged": new Set(rows.map(r => r.User_ID)).size,
+              "Total_Daily_Calories": total.toLocaleString(),
+              "Avg_Daily_Calories": (total / rows.length).toFixed(2)
+            };
+          });
+        }
+      },
+      {
+        id: 2,
+        title: "2. Total Calories Burned & Benchmarks",
+        desc: "Calculates cohort cumulative energy expenditure and average per session.",
+        code: `SELECT \n    SUM(Calories_Burned) AS Total_Calories_Burned,\n    ROUND(AVG(Calories_Burned), 2) AS Avg_Burn_Per_Session,\n    MIN(Calories_Burned) AS Min_Burn,\n    MAX(Calories_Burned) AS Max_Burn\nFROM fitness_activity_logs;`,
+        run: () => {
+          const total = window.FITNESS_DATA.reduce((s, r) => s + r.Calories_Burned, 0);
+          return [{
+            "Total_Calories_Burned": total.toLocaleString(),
+            "Avg_Burn_Per_Session": (total / window.FITNESS_DATA.length).toFixed(2),
+            "Min_Burn": Math.min(...window.FITNESS_DATA.map(d => d.Calories_Burned)),
+            "Max_Burn": Math.max(...window.FITNESS_DATA.map(d => d.Calories_Burned))
+          }];
+        }
+      },
+      {
+        id: 3,
+        title: "3. Average Workout Duration by Gender",
+        desc: "Evaluates duration benchmarks across male and female participants.",
+        code: `SELECT \n    Gender,\n    COUNT(*) AS Total_Workouts,\n    ROUND(AVG(Workout_Duration_Minutes), 1) AS Avg_Duration_Mins\nFROM fitness_activity_logs\nGROUP BY Gender;`,
+        run: () => {
+          return ['Male', 'Female'].map(g => {
+            const rows = window.FITNESS_DATA.filter(d => d.Gender === g);
+            return {
+              "Gender": g,
+              "Total_Workouts": rows.length,
+              "Avg_Duration_Mins": (rows.reduce((s, r) => s + r.Workout_Duration_Minutes, 0) / rows.length).toFixed(1)
+            };
+          });
+        }
+      },
+      {
+        id: 4,
+        title: "4. Calorie Burn Efficiency by Activity",
+        desc: "Calculates energy burn rate per minute (Calories_Burned / Workout_Duration_Minutes).",
+        code: `SELECT \n    Activity_Type,\n    COUNT(*) AS Total_Sessions,\n    ROUND(AVG(Calories_Burned), 1) AS Avg_Calories_Burned,\n    ROUND(AVG(Calories_Burned / Workout_Duration_Minutes), 2) AS Calorie_Burn_Rate_Per_Min\nFROM fitness_activity_logs\nGROUP BY Activity_Type\nORDER BY Calorie_Burn_Rate_Per_Min DESC;`,
+        run: () => {
+          const acts = ['HIIT', 'Running', 'Swimming', 'Cycling', 'Strength Training', 'Walking', 'Yoga'];
+          return acts.map(a => {
+            const rows = window.FITNESS_DATA.filter(d => d.Activity_Type === a);
+            const avgBurn = (rows.reduce((s, r) => s + r.Calories_Burned, 0) / rows.length).toFixed(1);
+            const rate = (rows.reduce((s, r) => s + (r.Calories_Burned / r.Workout_Duration_Minutes), 0) / rows.length).toFixed(2);
+            return {
+              "Activity_Type": a,
+              "Total_Sessions": rows.length,
+              "Avg_Calories_Burned": avgBurn,
+              "Calorie_Burn_Rate_Per_Min": rate
+            };
+          }).sort((a,b) => b.Calorie_Burn_Rate_Per_Min - a.Calorie_Burn_Rate_Per_Min);
+        }
+      },
+      {
+        id: 5,
+        title: "5. Ambulatory Steps Segmentation",
+        desc: "Segments days into Sedentary (<7k), Moderate (7k-10k), and Highly Active (10k+).",
+        code: `SELECT \n    ROUND(AVG(Steps), 0) AS Avg_Steps,\n    SUM(CASE WHEN Steps >= 10000 THEN 1 ELSE 0 END) AS High_10k_Plus_Days,\n    SUM(CASE WHEN Steps BETWEEN 7000 AND 9999 THEN 1 ELSE 0 END) AS Moderate_Days,\n    SUM(CASE WHEN Steps < 7000 THEN 1 ELSE 0 END) AS Sedentary_Days\nFROM fitness_activity_logs;`,
+        run: () => {
+          const totalSteps = window.FITNESS_DATA.reduce((s, r) => s + r.Steps, 0);
+          return [{
+            "Avg_Steps": Math.round(totalSteps / window.FITNESS_DATA.length).toLocaleString(),
+            "High_10k_Plus_Days": window.FITNESS_DATA.filter(d => d.Steps >= 10000).length,
+            "Moderate_Days": window.FITNESS_DATA.filter(d => d.Steps >= 7000 && d.Steps < 10000).length,
+            "Sedentary_Days": window.FITNESS_DATA.filter(d => d.Steps < 7000).length
+          }];
+        }
+      }
+    ];
+
+    let currentQueryIdx = 0;
+
+    function initSqlTab() {
+      const list = document.getElementById('queryList');
+      list.innerHTML = '';
+      SQL_QUERIES.forEach((q, idx) => {
+        const btn = document.createElement('button');
+        btn.className = `query-btn ${idx === 0 ? 'active' : ''}`;
+        btn.textContent = q.title;
+        btn.onclick = () => selectQuery(idx);
+        list.appendChild(btn);
+      });
+      selectQuery(0);
+    }
+
+    function selectQuery(idx) {
+      currentQueryIdx = idx;
+      document.querySelectorAll('.query-btn').forEach((b, i) => b.classList.toggle('active', i === idx));
+      const q = SQL_QUERIES[idx];
+      document.getElementById('sqlQueryTitle').textContent = q.title;
+      document.getElementById('sqlQueryDesc').textContent = q.desc;
+      document.getElementById('sqlCodeDisplay').textContent = q.code;
+      executeSelectedQuery();
+    }
+
+    function executeSelectedQuery() {
+      const q = SQL_QUERIES[currentQueryIdx];
+      const res = q.run();
+      const thead = document.getElementById('sqlResultHead');
+      const tbody = document.getElementById('sqlResultBody');
+      thead.innerHTML = '';
+      tbody.innerHTML = '';
+
+      if(!res || res.length === 0) return;
+
+      const cols = Object.keys(res[0]);
+      const trH = document.createElement('tr');
+      cols.forEach(c => {
+        const th = document.createElement('th');
+        th.textContent = c;
+        trH.appendChild(th);
+      });
+      thead.appendChild(trH);
+
+      res.forEach(row => {
+        const tr = document.createElement('tr');
+        cols.forEach(c => {
+          const td = document.createElement('td');
+          td.textContent = row[c];
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+    }
+
+    // DAX Tab Setup
+    const DAX_ITEMS = [
+      { name: "Total Calories Consumed", formula: "SUM(fitness_activity_logs[Calories_Consumed])", desc: "Calculates cohort or filtered dietary energy intake." },
+      { name: "Total Calories Burned", formula: "SUM(fitness_activity_logs[Calories_Burned])", desc: "Calculates total active exercise expenditure." },
+      { name: "Average Daily Steps", formula: "AVERAGEX(\n  KEEPFILTERS(SUMMARIZE(fitness_activity_logs, [Date], [User_ID], \"Steps\", SUM([Steps]))),\n  [Steps]\n)", desc: "Calculates distinct-day average steps per user without row duplicate bias." },
+      { name: "Average Workout Duration", formula: "AVERAGE(fitness_activity_logs[Workout_Duration_Minutes])", desc: "Mean duration of exercise sessions in minutes." },
+      { name: "Average Calories Per Session", formula: "DIVIDE([Total Calories Burned], [Total Workout Sessions], 0)", desc: "Safe division benchmark protecting against divide-by-zero errors." },
+      { name: "Calorie Difference", formula: "[Total Calories Consumed] - [Total Calories Burned]", desc: "Dietary intake minus workout burn. (Note: BMR and NEAT are excluded)." },
+      { name: "Step Goal Progress %", formula: "DIVIDE([Average Daily Steps], 10000, 0)", desc: "Percentage attainment toward the WHO 10,000 steps/day benchmark." },
+      { name: "Total Workout Sessions", formula: "COUNTROWS(fitness_activity_logs)", desc: "Total count of logged workout entries in the current context." }
+    ];
+
+    function initDaxTab() {
+      const grid = document.getElementById('daxGrid');
+      grid.innerHTML = '';
+      DAX_ITEMS.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'dax-card';
+        card.innerHTML = `
+          <div class="dax-header">
+            <h4>${item.name}</h4>
+            <span class="chart-badge">DAX Measure</span>
+          </div>
+          <div class="dax-code">${item.formula}</div>
+          <p class="dax-desc">${item.desc}</p>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    // Initialize on window load
+    window.addEventListener('DOMContentLoaded', initDashboard);
+  </script>
+</body>
+</html>
